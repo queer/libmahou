@@ -10,6 +10,7 @@ defmodule Mahou.Message.ChangeContainerStatus do
   typedstruct do
     field :id, String.t() | nil
     field :name, String.t() | nil
+    field :namespace, String.t() | nil
     field :command, command()
   end
 end
