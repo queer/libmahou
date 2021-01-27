@@ -4,6 +4,7 @@ defmodule Mahou.Format.App do
   typedstruct do
     field :id, String.t() | nil
     field :name, String.t()
+    field :namespace, String.t() | nil
     field :image, String.t()
     field :limits, __MODULE__.Limits.t()
   end
