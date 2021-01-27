@@ -13,5 +13,8 @@ defmodule Mahou.Message do
       ts: :os.system_time(:millisecond),
       payload: payload,
     }
+    |> :erlang.term_to_binary
   end
+
+  def parse(payload), do: :erlang.binary_to_term payload
 end
