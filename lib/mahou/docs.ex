@@ -91,7 +91,7 @@ defmodule Mahou.Docs do
     router.__routes__()
     |> Enum.map(&Map.from_struct/1)
     |> Enum.map(fn %{verb: verb, path: path, plug: plug, plug_opts: plug_opts} ->
-      {inputs, outputs} = Map.get plug.__mahou_doc_types__(), plug_opts
+      {inputs, outputs} = Map.get plug.__mahou_doc_types__(), plug_opts, {[], []}
       %__MODULE__.Route{
         route: path,
         method: verb,
