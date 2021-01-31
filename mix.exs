@@ -25,6 +25,7 @@ defmodule Mahou.MixProject do
       {:gen_json_schema, "~> 0.1.0"},
       {:annotatable, "~> 0.1.2"},
       {:ex_json_schema, "~> 0.7.4"},
+      {:singyeong, "~> 0.4.0"},
     ]
   end
 end
