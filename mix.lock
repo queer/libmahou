@@ -1,0 +1,7 @@
+%{
+  "annotatable": {:hex, :annotatable, "0.1.2", "29103613c986d7f56a80635a4548fa54a9c1011e4c419f4dbc8607f1c4bd3e9f", [:mix], [], "hexpm", "908ce0150bea70dbf201b57b62ea00a1134018265b1a13a20a59fb9f45c3a416"},
+  "ex_json_schema": {:hex, :ex_json_schema, "0.7.4", "09eb5b0c8184e5702bc89625a9d0c05c7a0a845d382e9f6f406a0fc1c9a8cc3f", [:mix], [], "hexpm", "45c67fa840f0d719a2b5578126dc29bcdc1f92499c0f61bcb8a3bcb5935f9684"},
+  "gen_json_schema": {:hex, :gen_json_schema, "0.1.0", "d6fe453c26b11d5938593a0b3040e86fdc1ff37f443fea620a6c08f675f538c5", [:mix], [{:jason, "~> 1.2", [hex: :jason, repo: "hexpm", optional: false]}], "hexpm", "abd940a8c6f4af66efa3299f09ff36e831e1f122278cc7fcbba9a562e76daa83"},
+  "jason": {:hex, :jason, "1.2.2", "ba43e3f2709fd1aa1dce90aaabfd039d000469c05c56f0b8e31978e03fa39052", [:mix], [{:decimal, "~> 1.0 or ~> 2.0", [hex: :decimal, repo: "hexpm", optional: true]}], "hexpm", "18a228f5f0058ee183f29f9eae0805c6e59d61c3b006760668d8d18ff0d12179"},
+  "typed_struct": {:hex, :typed_struct, "0.2.1", "e1993414c371f09ff25231393b6430bd89d780e2a499ae3b2d2b00852f593d97", [:mix], [], "hexpm", "8f5218c35ec38262f627b2c522542f1eae41f625f92649c0af701a6fab2e11b3"},
+}

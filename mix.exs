@@ -1,9 +1,9 @@
-defmodule Libmahou.MixProject do
+defmodule Mahou.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :libmahou,
+      app: :mahou,
       version: "0.1.0",
       elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
@@ -22,6 +22,9 @@ defmodule Libmahou.MixProject do
   defp deps do
     [
       {:typed_struct, "~> 0.2.1"},
+      {:gen_json_schema, "~> 0.1.0"},
+      {:annotatable, "~> 0.1.2"},
+      {:ex_json_schema, "~> 0.7.4"},
     ]
   end
 end

@@ -1,6 +1,6 @@
-defmodule Libmahou do
+defmodule Mahou do
   @moduledoc """
-  Documentation for `Libmahou`.
+  Documentation for `Mahou`.
   """
 
   @doc """
@@ -8,7 +8,7 @@ defmodule Libmahou do
 
   ## Examples
 
-      iex> Libmahou.hello()
+      iex> Mahou.hello()
       :world
 
   """

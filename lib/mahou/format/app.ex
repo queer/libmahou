@@ -7,7 +7,7 @@ defmodule Mahou.Format.App do
     field :namespace, String.t() | nil
     field :image, String.t()
     field :limits, __MODULE__.Limits.t()
-    field :env, %{required(String.t() => String.t()}
+    field :env, %{required(String.t()) => String.t()}
   end
 
   typedstruct module: Limits do
