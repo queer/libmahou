@@ -7,6 +7,6 @@ defmodule Mahou.Docs.JsonSchema do
 
     # Will raise if invalid schema
     ExJsonSchema.Schema.resolve json
-    {:ok, json}
+    json
   end
 end
