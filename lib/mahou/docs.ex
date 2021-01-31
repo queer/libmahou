@@ -62,16 +62,19 @@ defmodule Mahou.Docs do
   - `:output_messages`: `module | {module, desc}`s that this application can
     send.
   """
-  @spec docs_metadata(Keyword.t()) :: __MODULE__.Metadata.t()
+  @spec docs_metadata(Keyword.t()) :: map()
   def docs_metadata(opts) do
     routers = Keyword.get opts, :phx_routers, []
     input = Keyword.get opts, :input_messages, []
     output = Keyword.get opts, :output_messages, []
 
-    %__MODULE__.Metadata{
-      in: Enum.map(input, &to_msg/1),
-      out: Enum.map(output, &to_msg/1),
-      routes: Enum.flat_map(routers, &to_routes/1),
+    %{
+      type: "map",
+      value: %__MODULE__.Metadata{
+        in: Enum.map(input, &to_msg/1),
+        out: Enum.map(output, &to_msg/1),
+        routes: Enum.flat_map(routers, &to_routes/1),
+      },
     }
   end
 
