@@ -8,6 +8,7 @@ defmodule Mahou.Format.App do
     field :image, String.t()
     field :limits, __MODULE__.Limits.t()
     field :env, %{required(String.t()) => String.t()}
+    field :inner_port, non_neg_integer() | nil
   end
 
   typedstruct module: Limits do
