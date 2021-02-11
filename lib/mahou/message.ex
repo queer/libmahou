@@ -13,8 +13,43 @@ defmodule Mahou.Message do
       ts: :os.system_time(:millisecond),
       payload: payload,
     }
-    |> :erlang.term_to_binary
   end
 
-  def parse(payload), do: :erlang.binary_to_term payload
+  @doc """
+  ## Options
+
+  - `json`: Whether or not to b64 to make the payload JSON-safe.
+  """
+  def encode(payload, opts \\ []) do
+    json_safe? = Keyword.get opts, :json, false
+
+    payload
+    |> :erlang.term_to_binary
+    |> case do
+      bin when json_safe? ->
+        Base.encode64 bin
+
+      bin ->
+        bin
+    end
+  end
+
+  @doc """
+  ## Options
+
+  - `json`: See `encode/2`
+  """
+  def decode(payload, opts \\ []) do
+    json_safe? = Keyword.get opts, :json, false
+
+    payload
+    |> :erlang.term_to_binary
+    |> case do
+      bin when json_safe? ->
+        Base.decode64! bin
+
+      bin ->
+        bin
+    end
+  end
 end
