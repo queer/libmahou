@@ -6,10 +6,8 @@ defmodule Mahou.Singyeong do
   end
 
   def child_specs(dsn, consumer) do
-    ip = guess_internal_ip() <> ":" <> guess_port()
-
     [
-      {Singyeong.Client, {ip, Singyeong.parse_dsn(dsn)}},
+      {Singyeong.Client, {guess_internal_ip(), Singyeong.parse_dsn(dsn)}},
       Singyeong.Producer,
       consumer,
     ]
