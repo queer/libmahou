@@ -58,7 +58,7 @@ defmodule Mahou.Singyeong do
     |> tuple_to_ip
     |> Kernel.<>(":")
     |> Kernel.<>(guess_port())
-  end[]
+  end
 
   defp tuple_to_ip({a, b, c, d}) do
     "#{a}.#{b}.#{c}.#{d}"
