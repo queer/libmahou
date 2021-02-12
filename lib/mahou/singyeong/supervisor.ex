@@ -7,9 +7,10 @@ defmodule Mahou.Singyeong.Supervisor do
   end
 
   def init({dsn, consumer}) do
+    me = self()
     spawn fn ->
       # TODO: lol
-      :timer.sleep 100
+      :ok = spin_on_parent me
       start_children Singyeong.child_specs(dsn, consumer)
     end
     Supervisor.init [], strategy: :one_for_one
@@ -18,5 +19,26 @@ defmodule Mahou.Singyeong.Supervisor do
   def start_children(children) do
     for child <- children, do: Supervisor.start_child __MODULE__, child
     :ok
+  end
+
+  defp spin_on_parent(pid) do
+    pid
+    |> Process.info(:monitored_by)
+    |> elem(1)
+    |> Enum.map(fn monitor ->
+      status =
+        monitor
+        |> Process.info(:status)
+        |> elem(1)
+
+      status not in [:exiting, :suspended]
+    end)
+    |> Enum.all?
+    |> if do
+      :ok
+    else
+      :timer.sleep 10
+      spin_on_parent pid
+    end
   end
 end
