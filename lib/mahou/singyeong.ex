@@ -1,7 +1,15 @@
 defmodule Mahou.Singyeong do
   def child_specs(dsn, consumer) when is_binary(dsn) and is_atom(consumer) do
     [
-      {Singyeong.Client, {guess_internal_ip(), Singyeong.parse_dsn(dsn)}},
+      __MODULE__.Supervisor
+    ]
+  end
+
+  def start_client(dsn, consumer) do
+    ip = guess_internal_ip() <> ":" <> guess_port()
+
+    __MODULE__.Supervisor.start_children [
+      {Singyeong.Client, {ip, Singyeong.parse_dsn(dsn)}},
       Singyeong.Producer,
       consumer,
     ]
