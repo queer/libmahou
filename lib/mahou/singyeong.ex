@@ -88,12 +88,12 @@ defmodule Mahou.Singyeong do
         opts = endpoint.config :http
 
         if Keyword.has_key?(opts, :port) do
-          Keyword.get opts, :port
+          opts |> Keyword.get(:port) |> Integer.to_string
         else
           opts = endpoint.config :https
 
           if Keyword.has_key?(opts, :port) do
-            Keyword.get opts, :port
+            opts |> Keyword.get(:port) |> Integer.to_string
           else
             guess_port_from_env()
           end
