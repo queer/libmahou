@@ -1,5 +1,5 @@
 defmodule Mahou.Singyeong.Supervisor do
-  use Supervisor
+  use DynamicSupervisor
   alias Mahou.Singyeong
 
   def start_link(state) do
@@ -13,11 +13,11 @@ defmodule Mahou.Singyeong.Supervisor do
       :ok = spin_on_parent me
       start_children Singyeong.child_specs(dsn, consumer)
     end
-    Supervisor.init [], strategy: :one_for_one
+    DynamicSupervisor.init strategy: :one_for_one
   end
 
   def start_children(children) do
-    for child <- children, do: Supervisor.start_child __MODULE__, child
+    for child <- children, do: DynamicSupervisor.start_child __MODULE__, child
     :ok
   end
 
