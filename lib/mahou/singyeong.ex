@@ -68,8 +68,9 @@ defmodule Mahou.Singyeong do
     :code.all_loaded
     |> Enum.map(fn {m, _} -> m end)
     |> Enum.filter(fn m ->
-      str = Atom.to_string m
-      String.matches?(m, ~r/^Elixir\..*Web.Endpoint$/)
+      m
+      |> Atom.to_string
+      |> String.match?(~r/^Elixir\..*Web.Endpoint$/)
     end)
     |> case do
       [] ->
