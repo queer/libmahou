@@ -55,5 +55,10 @@ defmodule Mahou.Singyeong do
     |> hd
     |> elem(1)
     |> Keyword.get(:addr)
+    |> tuple_to_ip
+  end
+
+  defp tuple_to_ip({a, b, c, d}) do
+    "#{a}.#{b}.#{c}.#{d}"
   end
 end
