@@ -43,7 +43,6 @@ defmodule Mahou.Message do
     json_safe? = Keyword.get opts, :json, false
 
     payload
-    |> :erlang.term_to_binary
     |> case do
       bin when json_safe? ->
         Base.decode64! bin
@@ -51,5 +50,6 @@ defmodule Mahou.Message do
       bin ->
         bin
     end
+    |> :erlang.binary_to_term
   end
 end
