@@ -1,7 +1,7 @@
 defmodule Mahou.Singyeong do
   def supervisor(dsn, consumer) when is_binary(dsn) and is_atom(consumer) do
     [
-      __MODULE__.Supervisor
+      {__MODULE__.Supervisor, {dsn, consumer}}
     ]
   end
 
