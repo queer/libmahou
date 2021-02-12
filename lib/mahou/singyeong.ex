@@ -56,9 +56,48 @@ defmodule Mahou.Singyeong do
     |> elem(1)
     |> Keyword.get(:addr)
     |> tuple_to_ip
-  end
+    |> Kernel.<>(":")
+    |> Kernel.<>(guess_port())
+  end[]
 
   defp tuple_to_ip({a, b, c, d}) do
     "#{a}.#{b}.#{c}.#{d}"
+  end
+
+  defp guess_port do
+    :code.all_loaded
+    |> Enum.map(fn {m, _} -> m end)
+    |> Enum.filter(fn m ->
+      str = Atom.to_string m
+      String.matches?(m, ~r/^Elixir\..*Web.Endpoint$/)
+    end)
+    |> case do
+      [] ->
+        guess_port_from_env()
+
+      [endpoint | _] when is_atom(endpoint) ->
+        opts = endpoint.config :http
+
+        if Keyword.has_key?(opts, :port) do
+          Keyword.get opts, :port
+        else
+          opts = endpoint.config :https
+
+          if Keyword.has_key?(opts, :port) do
+            Keyword.get opts, :port
+          else
+            guess_port_from_env()
+          end
+        end
+    end
+  end
+
+  defp guess_port_from_env do
+    port = System.get_env("PORT")
+
+    case Integer.parse(port) do
+      {value, _} when value > 0 -> value
+      _ -> raise "mahou: singyeong: ip loader: couldn't guess port (tried: phx, env)"
+    end
   end
 end
