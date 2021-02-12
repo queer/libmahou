@@ -3,7 +3,7 @@ defmodule Mahou.Singyeong.Supervisor do
   alias Mahou.Singyeong
 
   def start_link(state) do
-    Supervisor.start_link __MODULE__, state, name: __MODULE__
+    DynamicSupervisor.start_link __MODULE__, state, name: __MODULE__
   end
 
   def init({dsn, consumer}) do
