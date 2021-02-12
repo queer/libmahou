@@ -1,21 +1,21 @@
 defmodule Mahou.Singyeong do
-  def child_specs(dsn, consumer) when is_binary(dsn) and is_atom(consumer) do
+  def supervisor(dsn, consumer) when is_binary(dsn) and is_atom(consumer) do
     [
       __MODULE__.Supervisor
     ]
   end
 
-  def start_client(dsn, consumer) do
+  def child_specs(dsn, consumer) do
     ip = guess_internal_ip() <> ":" <> guess_port()
 
-    __MODULE__.Supervisor.start_children [
+    [
       {Singyeong.Client, {ip, Singyeong.parse_dsn(dsn)}},
       Singyeong.Producer,
       consumer,
     ]
   end
 
-  def guess_internal_ip do
+  defp guess_internal_ip do
     super_secret_docker_bypass? = System.get_env("__DO_NOT_RUN_THIS_IN_DOCKER_OR_YOU_WILL_BE_FIRED_INTO_THE_SUN") != nil
 
     # TODO: THIS DOES NOT SUPPORT IPv6
