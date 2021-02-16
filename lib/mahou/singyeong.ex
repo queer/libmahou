@@ -1,4 +1,6 @@
 defmodule Mahou.Singyeong do
+  @metadata_version "v1"
+
   def supervisor(dsn, consumer) when is_binary(dsn) and is_atom(consumer) do
     [
       {__MODULE__.Supervisor, {dsn, consumer}}
@@ -12,6 +14,8 @@ defmodule Mahou.Singyeong do
       consumer,
     ]
   end
+
+  def metadata_version, do: @metadata_version
 
   defp guess_internal_ip do
     super_secret_docker_bypass? = System.get_env("__DO_NOT_RUN_THIS_IN_DOCKER_OR_YOU_WILL_BE_FIRED_INTO_THE_SUN") != nil

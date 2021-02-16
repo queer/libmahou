@@ -1,8 +1,8 @@
 defmodule Mahou.Docs do
   use TypedStruct
-  alias Mahou.Docs.JsonSchema
+  # alias Mahou.Docs.JsonSchema
 
-  @docs_key "mahou:singyeong:metadata:docs"
+  @docs_key "mahou:singyeong:#{Mahou.Singyeong.metadata_version()}:metadata:docs"
 
   @type http_method() ::
     :get
@@ -13,69 +13,165 @@ defmodule Mahou.Docs do
     | :head
     | :options
 
+  @type module_guess() ::
+    :controller
+    | :consumer
+    | :unknown
+
   defmacro __using__(_) do
     quote do
-      use Annotatable, [:in, :out]
-      alias Mahou.Docs.JsonSchema
+      use Annotatable, [:input, :output]
 
-      def __mahou_doc_types__() do
-        __MODULE__.annotations()
-        |> Enum.filter(fn {_, annotations} ->
-          Map.has_key?(annotations, :in) or Map.has_key?(annotations, :out)
-        end)
-        |> Enum.map(fn {function, annotations} ->
-          {function, {annotations[:in], annotations[:out]}}
-        end)
-        |> Map.new
+      def __mahou_docs__ do
+        what_am_i = Mahou.Docs.guess_what_this_is __MODULE__
+
+        # language-level docs
+        function_docs =
+          case Code.fetch_docs(__MODULE__) do
+            {:docs_v1, _, _lang, _mime, _module, _, function_docs} ->
+              function_docs
+
+            _ -> []
+          end
+
+        function_docs =
+          function_docs
+          |> Enum.reject(fn
+            {{:function, _func, _arity}, _, _spec, :hidden, _} -> true
+            _ -> false
+          end)
+          |> Enum.map(fn {{:function, func, _arity}, _, _, docs, _} ->
+            # TODO: Other languages?
+            {func, docs["en"]}
+          end)
+          |> Map.new
+
+        # %{:function => {module, kind()}}
+        # TODO: Could we do compile-time validation?
+        mahou_docs =
+        case what_am_i do
+          :consumer ->
+            __MODULE__.annotations()
+            |> Enum.map(fn {function, annotations} ->
+              new_annotations =
+                annotations
+                |> Enum.map(fn %{annotation: ann, value: val}-> {ann, val} end)
+                |> Map.new
+
+              {function, new_annotations}
+            end)
+            |> Enum.filter(fn {_, annotations} ->
+              # Consumers and controllers aren't allowed in the same module
+              Map.has_key?(annotations, :input) and not Map.has_key?(annotations, :output)
+            end)
+            |> Enum.map(fn {function, annotations} ->
+              case annotations[:input] do
+                mod when is_atom(mod) ->
+                  {function, %{
+                    type: :push,
+                    input: mod,
+                    docs: function_docs[function],
+                  }}
+
+                {mod, queue} when is_atom(mod) and is_binary(queue) ->
+                  {function, %{
+                    type: :queue,
+                    queue: queue,
+                    input: mod,
+                    docs: function_docs[function],
+                  }}
+
+                wtf -> __mahou_docs_raise_helper(:consumer, :input, function, wtf)
+              end
+            end)
+            |> Map.new
+
+          :controller ->
+            __MODULE__.annotations()
+            |> Enum.filter(fn {_, annotations} ->
+              Map.has_key?(annotations, :input) and Map.has_key?(annotations, :output)
+            end)
+            |> Enum.map(fn {function, annotations} ->
+              case {annotations[:input], annotations[:output]} do
+                {input, output} when is_atom(input) and is_atom(output) ->
+                  {function, %{
+                    type: :http,
+                    input: input,
+                    output: output,
+                    docs: function_docs[function],
+                  }}
+
+                wtf -> __mahou_docs_raise_helper(:controller, :io, function, wtf)
+              end
+            end)
+            |> Map.new
+
+          :unknown -> nil
+        end
+      end
+
+      defp __mahou_docs_raise_helper(type, kind, function, wtf) do
+        raise """
+        #{type}: #{__MODULE__}.#{function}: invalid #{kind}: #{inspect wtf, pretty: true}
+        """
       end
     end
   end
 
-  typedstruct module: Msg do
-    field :desc, String.t() | nil
-    field :schema, map()
-  end
+  def generate do
+    documented_mods =
+      fn mod -> Kernel.function_exported?(mod, :__mahou_docs__, 0) end
+      |> all_mods_where
+      # At this point, we have everything that uses this module
+      |> Enum.map(fn mod -> {mod, mod.__mahou_docs__()} end)
+      |> Map.new
 
-  typedstruct module: Route do
-    field :route, String.t()
-    field :method, Mahou.Docs.http_method()
-    field :in, [Mahou.Docs.Msg.t()]
-    field :out, [Mahou.Docs.Msg.t()]
-  end
+    consumers = Enum.filter documented_mods, fn {mod, _} -> guess_what_this_is(mod) == :consumer end
+    controllers = Enum.filter documented_mods, fn {mod, _} -> guess_what_this_is(mod) == :controller end
 
-  typedstruct module: Metadata do
-    field :in, [Mahou.Docs.Msg.t()] | []
-    field :out, [Mahou.Docs.Msg.t()] | []
-    field :routes, [Mahou.Docs.Route.t()] | []
-  end
+    # TODO: Add route, method, etc. info to controllers
 
-  @doc """
-  Generates mahou-compatible, singyeong-metadata-formatted documentation for
-  this application.
+    message_docs =
+      consumers
+      |> Enum.to_list
+      |> Enum.concat(Enum.to_list(controllers))
+      |> Enum.map(fn {_, functions} ->
+        Enum.map functions, fn
+          {_function, %{input: input, output: _output} = data} ->
+            # TODO: Functional JSON schema generator
+            # {Atom.to_string(input), %{data | input: JsonSchema.of(input), output: JsonSchema.of(output)}}
+            {Atom.to_string(input), data}
 
-  ## Options
+          {_function, %{input: input} = data} ->
+            # TODO: Functional JSON schema generator
+            # {Atom.to_string(input), %{data | input: JsonSchema.of(input)}}
+            {Atom.to_string(input), data}
+        end
+      end)
+      |> List.flatten
+      |> Enum.group_by(fn {k, _} -> k end, fn {_, v} -> v end)
+      |> Map.new
 
-  - `:phx_routers`: A list of Phoenix routers to automatically generate
-    documentation from.
-  - `:input_messages`: `module | {module, desc}`s that this application can
-    receive.
-  - `:output_messages`: `module | {module, desc}`s that this application can
-    send.
-  """
-  @spec docs_metadata(Keyword.t()) :: map()
-  def docs_metadata(opts) do
-    routers = Keyword.get opts, :phx_routers, []
-    input = Keyword.get opts, :input_messages, []
-    output = Keyword.get opts, :output_messages, []
+    transports =
+      message_docs
+      |> Enum.map(fn {mod, docs} ->
+        {mod, Enum.map(docs, &(&1[:type]))}
+      end)
+      |> Map.new
 
     %{
       type: "map",
-      value: %__MODULE__.Metadata{
-        in: Enum.map(input, &to_msg/1),
-        out: Enum.map(output, &to_msg/1),
-        routes: Enum.flat_map(routers, &to_routes/1),
+      value: %{
+        docs: message_docs,
+        transports: transports,
       },
     }
+  end
+
+  defp all_mods_where(query) do
+    :code.all_available()
+    |> Enum.map(fn {mod, _, _} -> mod |> to_string |> String.to_atom end)
+    |> Enum.filter(query)
   end
 
   @doc """
@@ -83,24 +179,14 @@ defmodule Mahou.Docs do
   """
   def docs_key, do: @docs_key
 
-  defp to_msg(module) when is_atom(module) do
-    %__MODULE__.Msg{desc: nil, schema: JsonSchema.of(module)}
-  end
-  defp to_msg({module, desc}) when is_atom(module) and is_binary(desc) do
-    %__MODULE__.Msg{desc: desc, schema: JsonSchema.of(module)}
-  end
-
-  defp to_routes(router) do
-    router.__routes__()
-    |> Enum.map(&Map.from_struct/1)
-    |> Enum.map(fn %{verb: verb, path: path, plug: plug, plug_opts: plug_opts} ->
-      {inputs, outputs} = Map.get plug.__mahou_doc_types__(), plug_opts, {[], []}
-      %__MODULE__.Route{
-        route: path,
-        method: verb,
-        in: Enum.map(inputs, &to_msg/1),
-        out: Enum.map(outputs, &to_msg/1),
-      }
-    end)
+  @spec guess_what_this_is(Module.t()) :: module_guess()
+  def guess_what_this_is(module) do
+    attrs = module.module_info()[:attributes]
+    cond do
+      attrs[:phoenix_callback] != nil -> :controller
+      attrs[:phoenix_forwards] != nil -> :router
+      is_list(attrs[:behaviour]) and Singyeong.Consumer in attrs[:behaviour] -> :consumer
+      true -> :unknown
+    end
   end
 end
