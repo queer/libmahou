@@ -138,7 +138,8 @@ defmodule Mahou.Docs do
     controllers =
       routers
       |> Map.values
-      |> Enum.flat_map(&{&1.plug, &1})
+      |> List.flatten
+      |> Enum.map(&{&1.plug, &1})
       |> Enum.group_by(fn {k, _} -> k end, fn {_, v} -> v end)
       |> Map.new
 
