@@ -1,6 +1,6 @@
 defmodule Mahou.Docs do
   use TypedStruct
-  # alias Mahou.Docs.JsonSchema
+  alias Mahou.Mod
 
   @docs_key "mahou:singyeong:#{Mahou.Singyeong.metadata_version()}:metadata:docs"
 
@@ -131,14 +131,14 @@ defmodule Mahou.Docs do
   def generate do
     documented_mods =
       fn mod -> Kernel.function_exported?(mod, :__mahou_docs__, 0) end
-      |> all_mods_where
+      |> Mod.all_mods_where
       # At this point, we have everything that uses this module
       |> Enum.map(fn mod -> {mod, mod.__mahou_docs__()} end)
       |> Map.new
 
     routers =
       fn mod -> Kernel.function_exported?(mod, :__routes__, 0) end
-      |> all_mods_where
+      |> Mod.all_mods_where
       |> Enum.map(&{&1, &1.__routes__()})
       |> Map.new
 
@@ -175,8 +175,8 @@ defmodule Mahou.Docs do
           data =
             %{
               data
-              | input: peek_json(input),
-                output: peek_json(output),
+              | input: Mod.peek_json(input),
+                output: Mod.peek_json(output),
             }
             |> Map.put(:http, %{
               method: route.verb,
@@ -196,7 +196,7 @@ defmodule Mahou.Docs do
       consumers
       |> Enum.map(fn {_, functions} ->
         Enum.map functions, fn {_function, %{input: input} = data} ->
-          {Atom.to_string(input), %{data | input: peek_json(input)}}
+          {Atom.to_string(input), %{data | input: Mod.peek_json(input)}}
         end
       end)
       |> List.flatten
@@ -228,29 +228,6 @@ defmodule Mahou.Docs do
         docs: message_docs,
         transports: transports,
       },
-    }
-  end
-
-  defp all_mods_where(query) do
-    :code.all_available()
-    |> Enum.map(fn {mod, _, _} -> mod |> to_string |> String.to_atom end)
-    |> Enum.filter(query)
-  end
-
-  defp peek_json(value) when not is_nil(value) do
-    struct_hack = Map.from_struct value.__struct__()
-    version = struct_hack[:version] || struct_hack[:v] || 0
-    %{
-      name: Atom.to_string(value),
-      version: version,
-      types: Peek.peek(value, json: true),
-    }
-  end
-  defp peek_json(value) when is_nil(value) do
-    %{
-      name: "nil",
-      version: 0,
-      types: "nil",
     }
   end
 
