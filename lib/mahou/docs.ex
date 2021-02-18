@@ -208,8 +208,6 @@ defmodule Mahou.Docs do
       |> Enum.concat(controller_docs)
       |> Enum.group_by(fn {k, _} -> k end, fn {_, v} -> v end)
 
-    IO.inspect message_docs, pretty: true
-
     transports =
       message_docs
       |> Enum.map(fn {mod, docs} ->
