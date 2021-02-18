@@ -38,6 +38,7 @@ defmodule Mahou.Docs do
           function_docs
           |> Enum.reject(fn
             {{:function, _func, _arity}, _, _spec, :hidden, _} -> true
+            {{:function, _func, _arity}, _, _spec, :none, _} -> true
             _ -> false
           end)
           |> Enum.map(fn {{:function, func, _arity}, _, _, docs, _} ->
