@@ -148,7 +148,11 @@ defmodule Mahou.Docs do
       |> Enum.map(fn {mod, meta} -> {mod, meta, documented_mods[mod]} end)
       |> Enum.map(fn {_, meta, functions} ->
         Enum.map functions, fn {function, %{input: input, output: output} = data} ->
-          route = Enum.filter meta, fn route -> route.plug_opts == function end
+          route =
+            meta
+            |> Enum.filter(fn route -> route.plug_opts == function end)
+            |> hd
+
           {Atom.to_string(input), %{
             data
             | input: peek_json(input),
