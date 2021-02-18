@@ -127,27 +127,53 @@ defmodule Mahou.Docs do
       |> Enum.map(fn mod -> {mod, mod.__mahou_docs__()} end)
       |> Map.new
 
+    routers =
+      fn mod -> Kernel.function_exported?(mod, :__routes__, 0) end
+      |> all_mods_where
+      |> Enum.map(&{&1, &1.__routes__()})
+
     consumers = Enum.filter documented_mods, fn {mod, _} -> guess_what_this_is(mod) == :consumer end
-    controllers = Enum.filter documented_mods, fn {mod, _} -> guess_what_this_is(mod) == :controller end
+
+    controllers =
+      routers
+      |> Map.values
+      |> Enum.map(&{&1.plug, &1})
+      |> Enum.group_by(fn {k, _} -> k end, fn {_, v} -> v end)
+      |> Map.new
+
+    controller_docs =
+      controllers
+      |> Enum.filter(fn {mod, _} -> Map.has_key?(documented_mods, mod) end)
+      |> Enum.map(fn {mod, meta} -> {mod, meta, documented_mods[mod]} end)
+      |> Enum.map(fn {_, meta, functions} ->
+        Enum.map functions, fn {function, %{input: input, output: output} = data} ->
+          route = Enum.filter meta, fn route -> route.plug_opts == function end
+          {Atom.to_string(input), %{
+            data
+            | input: peek_json(input),
+              output: peek_json(output),
+              http: %{
+                method: route.verb,
+                path: route.path,
+              },
+          }}
+        end
+      end)
 
     # TODO: Add route, method, etc. info to controllers
 
-    message_docs =
+    consumer_docs =
       consumers
-      |> Enum.to_list
-      |> Enum.concat(Enum.to_list(controllers))
       |> Enum.map(fn {_, functions} ->
-        Enum.map functions, fn
-          {_function, %{input: input, output: output} = data} ->
-            {Atom.to_string(input), %{data | input: peek_json(input), output: peek_json(output)}}
-
-          {_function, %{input: input} = data} ->
-            {Atom.to_string(input), %{data | input: peek_json(input)}}
+        Enum.map functions, fn {_function, %{input: input} = data} ->
+          {Atom.to_string(input), %{data | input: peek_json(input)}}
         end
       end)
       |> List.flatten
       |> Enum.group_by(fn {k, _} -> k end, fn {_, v} -> v end)
       |> Map.new
+
+    message_docs = consumer_docs ++ controller_docs
 
     transports =
       message_docs
