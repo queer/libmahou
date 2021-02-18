@@ -19,11 +19,11 @@ defmodule Mahou.Docs do
     | :unknown
 
   defmacro __using__(_) do
-    quote do
+    quote location: :keep do
       use Annotatable, [:input, :output]
 
-      def __mahou_docs__ do
-        what_am_i = Mahou.Docs.guess_what_this_is __MODULE__
+      def __mahou_docs__(type \\ nil) do
+        what_am_i = type || Mahou.Docs.guess_what_this_is __MODULE__
 
         # language-level docs
         function_docs =
@@ -89,8 +89,17 @@ defmodule Mahou.Docs do
 
           :controller ->
             __MODULE__.annotations()
+            |> Enum.map(fn {function, annotations} ->
+              new_annotations =
+                annotations
+                |> Enum.map(fn %{annotation: ann, value: val}-> {ann, val} end)
+                |> Map.new
+
+              {function, new_annotations}
+            end)
             |> Enum.filter(fn {_, annotations} ->
-              Map.has_key?(annotations, :input) and Map.has_key?(annotations, :output)
+              # TODO: Does this really need to check both?
+              Map.has_key?(annotations, :input) # and Map.has_key?(annotations, :output)
             end)
             |> Enum.map(fn {function, annotations} ->
               case {annotations[:input], annotations[:output]} do
@@ -141,30 +150,45 @@ defmodule Mahou.Docs do
       |> List.flatten
       |> Enum.map(&{&1.plug, &1})
       |> Enum.group_by(fn {k, _} -> k end, fn {_, v} -> v end)
-      |> Map.new
 
     controller_docs =
       controllers
-      |> Enum.filter(fn {mod, _} -> Map.has_key?(documented_mods, mod) end)
-      |> Enum.map(fn {mod, meta} -> {mod, meta, documented_mods[mod]} end)
-      |> Enum.map(fn {_, meta, functions} ->
-        Enum.map functions, fn {function, %{input: input, output: output} = data} ->
+      |> Enum.map(fn {mod, meta} ->
+        meta
+        |> Enum.map(&(&1.plug_opts))
+        |> Enum.map(&{&1, mod.__mahou_docs__(:controller)})
+        |> Enum.map(fn {function, function_metadata} ->
+          data = function_metadata[function]
+          %{
+            docs: docs,
+            input: input,
+            output: output,
+          } = data
+
           route =
-            meta
+            routers
+            |> Map.values
+            |> List.flatten
             |> Enum.filter(fn route -> route.plug_opts == function end)
             |> hd
 
-          {Atom.to_string(input), %{
-            data
-            | input: peek_json(input),
-              output: peek_json(output),
-              http: %{
-                method: route.verb,
-                path: route.path,
-              },
-          }}
-        end
+          data =
+            %{
+              data
+              | input: peek_json(input),
+                output: peek_json(output),
+            }
+            |> Map.put(:http, %{
+              method: route.verb,
+              path: route.path,
+            })
+            |> Map.put(:docs, docs)
+
+          {Atom.to_string(input), data}
+        end)
       end)
+      |> List.flatten
+      |> Map.new
 
     # TODO: Add route, method, etc. info to controllers
 
@@ -179,7 +203,12 @@ defmodule Mahou.Docs do
       |> Enum.group_by(fn {k, _} -> k end, fn {_, v} -> v end)
       |> Map.new
 
-    message_docs = consumer_docs ++ controller_docs
+    message_docs =
+      consumer_docs
+      |> Enum.concat(controller_docs)
+      |> Enum.group_by(fn {k, _} -> k end, fn {_, v} -> v end)
+
+    IO.inspect message_docs, pretty: true
 
     transports =
       message_docs
@@ -210,13 +239,20 @@ defmodule Mahou.Docs do
     |> Enum.filter(query)
   end
 
-  defp peek_json(value) do
+  defp peek_json(value) when not is_nil(value) do
     struct_hack = Map.from_struct value.__struct__()
     version = struct_hack[:version] || struct_hack[:v] || 0
     %{
       name: Atom.to_string(value),
       version: version,
       types: Peek.peek(value, json: true),
+    }
+  end
+  defp peek_json(value) when is_nil(value) do
+    %{
+      name: "nil",
+      version: 0,
+      types: "nil",
     }
   end
 
