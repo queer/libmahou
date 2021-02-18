@@ -26,6 +26,7 @@ defmodule Mahou.MixProject do
       {:annotatable, "~> 0.1.2"},
       {:ex_json_schema, "~> 0.7.4"},
       {:singyeong, "~> 0.4.0"},
+      {:peek, "~> 0.2.0"},
     ]
   end
 end

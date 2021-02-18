@@ -3,6 +3,6 @@ defmodule Mahou.Message.CreateContainer do
   alias Mahou.Format.App
 
   typedstruct do
-    field :apps, [App]
+    field :apps, [App.t()]
   end
 end

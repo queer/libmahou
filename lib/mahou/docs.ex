@@ -137,15 +137,11 @@ defmodule Mahou.Docs do
       |> Enum.concat(Enum.to_list(controllers))
       |> Enum.map(fn {_, functions} ->
         Enum.map functions, fn
-          {_function, %{input: input, output: _output} = data} ->
-            # TODO: Functional JSON schema generator
-            # {Atom.to_string(input), %{data | input: JsonSchema.of(input), output: JsonSchema.of(output)}}
-            {Atom.to_string(input), data}
+          {_function, %{input: input, output: output} = data} ->
+            {Atom.to_string(input), %{data | input: peek_json(input), output: peek_json(output)}}
 
           {_function, %{input: input} = data} ->
-            # TODO: Functional JSON schema generator
-            # {Atom.to_string(input), %{data | input: JsonSchema.of(input)}}
-            {Atom.to_string(input), data}
+            {Atom.to_string(input), %{data | input: peek_json(input)}}
         end
       end)
       |> List.flatten
@@ -155,7 +151,14 @@ defmodule Mahou.Docs do
     transports =
       message_docs
       |> Enum.map(fn {mod, docs} ->
-        {mod, Enum.map(docs, &(&1[:type]))}
+        {mod, Enum.map(docs, fn doc ->
+          case doc[:type] do
+            :push -> :push
+            # Can't have tuples in JSON
+            :queue -> [:queue, doc[:queue]]
+            _ -> doc[:type]
+          end
+        end)}
       end)
       |> Map.new
 
@@ -172,6 +175,16 @@ defmodule Mahou.Docs do
     :code.all_available()
     |> Enum.map(fn {mod, _, _} -> mod |> to_string |> String.to_atom end)
     |> Enum.filter(query)
+  end
+
+  defp peek_json(value) do
+    struct_hack = Map.from_struct value.__struct__()
+    version = struct_hack[:version] || struct_hack[:v] || 0
+    %{
+      name: Atom.to_string(value),
+      version: version,
+      types: Peek.peek(value, json: true),
+    }
   end
 
   @doc """
