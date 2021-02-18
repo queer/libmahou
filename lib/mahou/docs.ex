@@ -131,6 +131,7 @@ defmodule Mahou.Docs do
       fn mod -> Kernel.function_exported?(mod, :__routes__, 0) end
       |> all_mods_where
       |> Enum.map(&{&1, &1.__routes__()})
+      |> Map.new
 
     consumers = Enum.filter documented_mods, fn {mod, _} -> guess_what_this_is(mod) == :consumer end
 
